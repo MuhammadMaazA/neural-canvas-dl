@@ -6,7 +6,7 @@ import LLMInterpreter from "./LLMInterpreter";
 interface AnalyzerSectionProps {
   loadedImage: string | null;
   isScanning: boolean;
-  onImageLoad: (imageUrl: string) => void;
+  onImageLoad: (imageUrl: string, file?: File) => void;
   onLoadDemo: () => void;
   artistPredictions: { label: string; confidence: number }[];
   stylePredictions: { label: string; confidence: number }[];

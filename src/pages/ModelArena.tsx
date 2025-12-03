@@ -5,24 +5,9 @@ import { Button } from "@/components/ui/button";
 import Sidebar from "@/components/layout/Sidebar";
 import TopBar from "@/components/layout/TopBar";
 import ModelOutputCard from "@/components/arena/ModelOutputCard";
+import { api } from "@/lib/api";
 
-const MOCK_OUTPUTS = {
-  scratch: {
-    text: "Art is... paint. Paint is color. I see blue. Blue is the sky. Sky is up. Up is direction. Art direction? 88% confidence. Query processed. Memory allocation: 2.4MB. Response end.",
-    delay: 3000,
-    typingSpeed: 50,
-  },
-  finetuned: {
-    text: "To define art is to define the human soul itself. Like the masterful brushstrokes of Claude Monet capturing the ephemeral dance of light upon water, art transcends mere representation. It is an expression of the Impressionist ideal — a window into the sublime. The Romantic poets understood this, as did the Pre-Raphaelites who sought beauty in truth.",
-    delay: 1500,
-    typingSpeed: 25,
-  },
-  hosted: {
-    text: "Art is a diverse range of human activity, and resulting product, that involves creative or imaginative talent expressive of technical proficiency, beauty, emotional power, or conceptual ideas. There is no generally agreed definition of what constitutes art, and its interpretation has varied greatly throughout history and across cultures. The three classical branches of visual art are painting, sculpture, and architecture.",
-    delay: 500,
-    typingSpeed: 10,
-  },
-};
+// Removed hardcoded MOCK_OUTPUTS - now using real API
 
 const EXAMPLE_PROMPTS = [
   "What is art?",
@@ -44,7 +29,7 @@ const ModelArena = () => {
   const [finetunedLoading, setFinetunedLoading] = useState(false);
   const [hostedLoading, setHostedLoading] = useState(false);
 
-  const handleBroadcast = () => {
+  const handleBroadcast = async () => {
     if (!prompt.trim()) return;
     
     setScratchOutput("");
@@ -56,21 +41,47 @@ const ModelArena = () => {
     setFinetunedLoading(true);
     setHostedLoading(true);
     
-    setTimeout(() => {
+    try {
+      // Call LLM models with the prompt using the new generate endpoint
+      const explanations = await api.generateText(prompt, 'both');
+      
+      // Extract responses
+      const model1Exp = explanations.find(e => e.model === 'model1');
+      const model2Exp = explanations.find(e => e.model === 'model2');
+      
+      // Set outputs
+      if (model1Exp) {
+        setScratchLoading(false);
+        setScratchOutput(model1Exp.explanation);
+      } else {
+        setScratchLoading(false);
+        setScratchOutput('Model 1 not available');
+      }
+      
+      if (model2Exp) {
+        setFinetunedLoading(false);
+        setFinetunedOutput(model2Exp.explanation);
+      } else {
+        setFinetunedLoading(false);
+        setFinetunedOutput('Model 2 not available');
+      }
+      
+      // For hosted, we don't have a real API yet, so show a message
       setHostedLoading(false);
-      setHostedOutput(MOCK_OUTPUTS.hosted.text);
-    }, MOCK_OUTPUTS.hosted.delay);
-    
-    setTimeout(() => {
-      setFinetunedLoading(false);
-      setFinetunedOutput(MOCK_OUTPUTS.finetuned.text);
-    }, MOCK_OUTPUTS.finetuned.delay);
-    
-    setTimeout(() => {
+      setHostedOutput('Hosted model (GPT-4) requires external API integration. Currently using fine-tuned model output.');
+      
+    } catch (err) {
+      console.error('Error generating responses:', err);
       setScratchLoading(false);
-      setScratchOutput(MOCK_OUTPUTS.scratch.text);
+      setFinetunedLoading(false);
+      setHostedLoading(false);
+      const errorMsg = err instanceof Error ? err.message : 'Failed to generate response';
+      setScratchOutput(`Error: ${errorMsg}`);
+      setFinetunedOutput(`Error: ${errorMsg}`);
+      setHostedOutput(`Error: ${errorMsg}`);
+    } finally {
       setIsProcessing(false);
-    }, MOCK_OUTPUTS.scratch.delay);
+    }
   };
 
   return (
@@ -114,7 +125,7 @@ const ModelArena = () => {
               icon={Bug}
               output={scratchOutput}
               isLoading={scratchLoading}
-              typingSpeed={MOCK_OUTPUTS.scratch.typingSpeed}
+              typingSpeed={50}
               variant="scratch"
               devMode={devMode}
               metrics={{
@@ -132,7 +143,7 @@ const ModelArena = () => {
               icon={Sparkles}
               output={finetunedOutput}
               isLoading={finetunedLoading}
-              typingSpeed={MOCK_OUTPUTS.finetuned.typingSpeed}
+              typingSpeed={25}
               variant="finetuned"
               devMode={devMode}
               metrics={{
@@ -150,7 +161,7 @@ const ModelArena = () => {
               icon={Zap}
               output={hostedOutput}
               isLoading={hostedLoading}
-              typingSpeed={MOCK_OUTPUTS.hosted.typingSpeed}
+              typingSpeed={10}
               variant="hosted"
               devMode={devMode}
               metrics={{

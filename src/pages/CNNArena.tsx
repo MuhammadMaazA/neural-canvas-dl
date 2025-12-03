@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import Sidebar from "@/components/layout/Sidebar";
 import TopBar from "@/components/layout/TopBar";
 import CNNOutputCard from "@/components/arena/CNNOutputCard";
+import { api, formatCNNPredictions } from "@/lib/api";
 
 const MOCK_CLASSIFICATIONS = {
   scratch: {
@@ -33,21 +34,25 @@ const CNNArena = () => {
   const [activeSection, setActiveSection] = useState("cnn");
   const [devMode, setDevMode] = useState(false);
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
+  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const [scratchResults, setScratchResults] = useState<typeof MOCK_CLASSIFICATIONS.scratch.predictions | null>(null);
-  const [finetunedResults, setFinetunedResults] = useState<typeof MOCK_CLASSIFICATIONS.finetuned.predictions | null>(null);
+  const [scratchResults, setScratchResults] = useState<{ label: string; confidence: number }[] | null>(null);
+  const [finetunedResults, setFinetunedResults] = useState<{ label: string; confidence: number }[] | null>(null);
 
   const [scratchLoading, setScratchLoading] = useState(false);
   const [finetunedLoading, setFinetunedLoading] = useState(false);
 
   const handleImageUpload = useCallback((file: File) => {
+    setUploadedFile(file);
     const reader = new FileReader();
     reader.onload = (e) => {
       setUploadedImage(e.target?.result as string);
     };
     reader.readAsDataURL(file);
+    setError(null);
   }, []);
 
   const handleDrop = useCallback((e: React.DragEvent) => {
@@ -75,34 +80,62 @@ const CNNArena = () => {
     }
   }, [handleImageUpload]);
 
-  const handleClassify = () => {
-    if (!uploadedImage) return;
+  const handleClassify = async () => {
+    if (!uploadedFile) return;
 
     setScratchResults(null);
     setFinetunedResults(null);
+    setError(null);
 
     setIsProcessing(true);
     setScratchLoading(true);
     setFinetunedLoading(true);
 
-    // Fine-tuned finishes first
-    setTimeout(() => {
-      setFinetunedLoading(false);
-      setFinetunedResults(MOCK_CLASSIFICATIONS.finetuned.predictions);
-    }, MOCK_CLASSIFICATIONS.finetuned.delay);
-
-    // Scratch finishes last
-    setTimeout(() => {
+    try {
+      // Call both models in parallel
+      const bothResults = await api.classifyBoth(uploadedFile);
+      
+      // Format scratch results - names with confidence for bars
+      if (bothResults.scratch) {
+        const scratchPreds = [
+          { label: bothResults.scratch.artist, confidence: bothResults.scratch.artist_confidence },
+          { label: bothResults.scratch.style, confidence: bothResults.scratch.style_confidence },
+          { label: bothResults.scratch.genre, confidence: bothResults.scratch.genre_confidence },
+        ];
+        setScratchResults(scratchPreds);
+        setScratchLoading(false);
+      } else {
+        setScratchLoading(false);
+      }
+      
+      // Format fine-tuned results - names with confidence for bars
+      if (bothResults.finetuned) {
+        const finetunedPreds = [
+          { label: bothResults.finetuned.artist, confidence: bothResults.finetuned.artist_confidence },
+          { label: bothResults.finetuned.style, confidence: bothResults.finetuned.style_confidence },
+          { label: bothResults.finetuned.genre, confidence: bothResults.finetuned.genre_confidence },
+        ];
+        setFinetunedResults(finetunedPreds);
+        setFinetunedLoading(false);
+      } else {
+        setFinetunedLoading(false);
+      }
+      
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Classification failed');
       setScratchLoading(false);
-      setScratchResults(MOCK_CLASSIFICATIONS.scratch.predictions);
+      setFinetunedLoading(false);
+    } finally {
       setIsProcessing(false);
-    }, MOCK_CLASSIFICATIONS.scratch.delay);
+    }
   };
 
   const clearImage = () => {
     setUploadedImage(null);
+    setUploadedFile(null);
     setScratchResults(null);
     setFinetunedResults(null);
+    setError(null);
   };
 
   return (
@@ -117,26 +150,26 @@ const CNNArena = () => {
           <div className="absolute top-20 right-1/4 w-80 h-80 bg-secondary/10 rounded-full blur-[100px]" />
         </div>
 
-        <div className="relative flex-1 flex flex-col max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-4 w-full">
+        <div className="relative flex-1 flex flex-col max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 py-2 w-full overflow-hidden">
           {/* Header */}
           <motion.div
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="text-center mb-3"
+            className="text-center mb-2"
           >
-            <h1 className="font-serif text-2xl md:text-3xl font-bold tracking-tight mb-1">
+            <h1 className="font-serif text-xl md:text-2xl font-bold tracking-tight mb-0.5">
               <span className="text-foreground">The </span>
               <span className="bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent">
                 CNN Arena
               </span>
             </h1>
-            <p className="text-muted-foreground text-xs font-sans">
+            <p className="text-muted-foreground text-[10px] font-sans">
               One image. Two architectures. Observe classification accuracy.
             </p>
           </motion.div>
 
           {/* Main Grid: Image + 2 CNN Cards */}
-          <div className="flex-1 grid grid-cols-1 lg:grid-cols-3 gap-4 min-h-0">
+          <div className="flex-1 grid grid-cols-1 lg:grid-cols-3 gap-3 min-h-0 overflow-hidden">
             {/* Image Upload Zone */}
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
@@ -202,7 +235,7 @@ const CNNArena = () => {
               title="The Novice"
               subtitle="CNN from Scratch"
               params="12M Params"
-              statusLabel="Val Acc: 34%"
+              statusLabel=""
               icon={Bug}
               predictions={scratchResults}
               isLoading={scratchLoading}
@@ -219,7 +252,7 @@ const CNNArena = () => {
               title="The Expert"
               subtitle="Fine-Tuned ResNet50"
               params="WikiArt Dataset"
-              statusLabel="Val Acc: 87%"
+              statusLabel=""
               icon={Sparkles}
               predictions={finetunedResults}
               isLoading={finetunedLoading}
@@ -232,6 +265,19 @@ const CNNArena = () => {
               }}
             />
           </div>
+
+          {/* Error Display */}
+          {error && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="flex justify-center mt-2"
+            >
+              <div className="text-sm text-red-500 bg-red-500/10 px-4 py-2 rounded-lg">
+                Error: {error}
+              </div>
+            </motion.div>
+          )}
 
           {/* Classify Button */}
           <motion.div
@@ -247,7 +293,7 @@ const CNNArena = () => {
               className="px-8 text-sm font-semibold bg-gradient-to-r from-primary to-secondary text-primary-foreground rounded-xl"
             >
               <Upload className="w-4 h-4 mr-2" />
-              Classify Artwork
+              {isProcessing ? 'Classifying...' : 'Classify Artwork'}
             </Button>
           </motion.div>
         </div>

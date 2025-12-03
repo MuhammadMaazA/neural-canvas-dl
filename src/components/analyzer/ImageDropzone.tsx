@@ -4,7 +4,7 @@ import { Frame, Upload, Shuffle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface ImageDropzoneProps {
-  onImageLoad: (imageUrl: string) => void;
+  onImageLoad: (imageUrl: string, file?: File) => void;
   isScanning: boolean;
   loadedImage: string | null;
   onLoadDemo: () => void;
@@ -32,7 +32,7 @@ const ImageDropzone = ({ onImageLoad, isScanning, loadedImage, onLoadDemo }: Ima
       const reader = new FileReader();
       reader.onload = (event) => {
         if (event.target?.result) {
-          onImageLoad(event.target.result as string);
+          onImageLoad(event.target.result as string, file);
         }
       };
       reader.readAsDataURL(file);
@@ -45,7 +45,7 @@ const ImageDropzone = ({ onImageLoad, isScanning, loadedImage, onLoadDemo }: Ima
       const reader = new FileReader();
       reader.onload = (event) => {
         if (event.target?.result) {
-          onImageLoad(event.target.result as string);
+          onImageLoad(event.target.result as string, file);
         }
       };
       reader.readAsDataURL(file);

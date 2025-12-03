@@ -67,30 +67,32 @@ const CNNOutputCard = ({
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: variant === "scratch" ? 0.2 : 0.3 }}
       className={cn(
-        "glass-panel rounded-xl p-4 flex flex-col border",
+        "glass-panel rounded-xl p-3 flex flex-col border min-h-0",
         styles.border,
         styles.glow
       )}
     >
       {/* Header */}
-      <div className="flex items-start justify-between mb-3">
+      <div className="flex items-start justify-between mb-2 shrink-0">
         <div className="flex items-center gap-2">
-          <div className={cn("w-8 h-8 rounded-lg flex items-center justify-center", styles.accentBg)}>
-            <Icon className={cn("w-4 h-4", styles.accent)} />
+          <div className={cn("w-7 h-7 rounded-lg flex items-center justify-center", styles.accentBg)}>
+            <Icon className={cn("w-3.5 h-3.5", styles.accent)} />
           </div>
           <div>
-            <div className="flex items-center gap-2">
-              <h3 className={cn("font-serif text-sm font-semibold", styles.accent)}>
+            <div className="flex items-center gap-1.5">
+              <h3 className={cn("font-serif text-xs font-semibold", styles.accent)}>
                 {title}
               </h3>
-              <span className={cn(
-                "px-2 py-0.5 rounded-full text-[9px] font-mono border",
-                styles.statusBg, styles.statusText, styles.statusBorder
-              )}>
-                {statusLabel}
-              </span>
+              {statusLabel && (
+                <span className={cn(
+                  "px-1.5 py-0.5 rounded-full text-[8px] font-mono border",
+                  styles.statusBg, styles.statusText, styles.statusBorder
+                )}>
+                  {statusLabel}
+                </span>
+              )}
             </div>
-            <p className="text-[10px] text-muted-foreground font-mono uppercase tracking-wider">
+            <p className="text-[9px] text-muted-foreground font-mono uppercase tracking-wider">
               {subtitle} • {params}
             </p>
           </div>
@@ -98,31 +100,31 @@ const CNNOutputCard = ({
       </div>
 
       {/* Predictions Area */}
-      <div className="flex-1 rounded-lg bg-canvas-deep border border-border/50 p-3 overflow-hidden">
+      <div className="flex-1 rounded-lg bg-canvas-deep border border-border/50 p-2.5 overflow-y-auto min-h-0">
         {isLoading ? (
           <div className="h-full flex flex-col justify-center gap-2">
-            {[...Array(5)].map((_, i) => (
-              <div key={i} className="flex items-center gap-3">
-                <div className="w-24 h-3 bg-muted/50 rounded animate-pulse" />
+            {[...Array(3)].map((_, i) => (
+              <div key={i} className="flex items-center gap-2">
+                <div className="w-20 h-2.5 bg-muted/50 rounded animate-pulse" />
                 <div className="flex-1 h-2 bg-muted/30 rounded animate-pulse" />
-                <div className="w-10 h-3 bg-muted/50 rounded animate-pulse" />
+                <div className="w-10 h-2.5 bg-muted/50 rounded animate-pulse" />
               </div>
             ))}
           </div>
         ) : predictions ? (
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             {predictions.map((pred, index) => (
               <motion.div
                 key={pred.label}
                 initial={{ opacity: 0, x: -10 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: index * 0.1 }}
-                className="flex items-center gap-3"
+                className="flex items-center gap-2"
               >
-                <span className="w-28 text-[11px] text-muted-foreground truncate">
+                <span className="w-28 text-[10px] text-foreground truncate">
                   {pred.label}
                 </span>
-                <div className="flex-1 h-2 bg-muted/30 rounded-full overflow-hidden">
+                <div className="flex-1 h-1.5 bg-muted/30 rounded-full overflow-hidden min-w-0">
                   <motion.div
                     initial={{ width: 0 }}
                     animate={{ width: `${pred.confidence * 100}%` }}
@@ -130,7 +132,7 @@ const CNNOutputCard = ({
                     className={cn("h-full rounded-full", styles.barBg)}
                   />
                 </div>
-                <span className={cn("w-12 text-right text-[11px] font-mono", styles.accent)}>
+                <span className={cn("w-11 text-right text-[10px] font-mono shrink-0", styles.accent)}>
                   {(pred.confidence * 100).toFixed(1)}%
                 </span>
               </motion.div>
@@ -138,7 +140,7 @@ const CNNOutputCard = ({
           </div>
         ) : (
           <div className="h-full flex items-center justify-center">
-            <span className="text-xs text-muted-foreground/50 font-mono">
+            <span className="text-[10px] text-muted-foreground/50 font-mono">
               // Awaiting image...
             </span>
           </div>
