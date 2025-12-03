@@ -41,3 +41,4 @@
   <!-- Brush stroke accent -->
   <path d="M 30 50 Q 35 45, 40 50 T 50 50" stroke="#D4AF37" stroke-width="3" fill="none" stroke-linecap="round" opacity="0.7"/>
 </svg>
+
