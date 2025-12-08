@@ -1,9 +1,5 @@
-"use client";
-
 import { Brain, Eye, Palette, Zap, Sparkles, Settings, Info, MessageSquare, ScanEye, Wand2 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import Link from "next/link";
-import { usePathname } from "next/navigation";
 
 interface SidebarProps {
   activeSection: string;
@@ -21,10 +17,10 @@ const navItems = [
 
 const Sidebar = ({ activeSection, onSectionChange }: SidebarProps) => {
   return (
-    <aside className="fixed left-0 top-0 z-40 h-screen w-16 bg-sidebar border-r border-sidebar-border flex flex-col items-center py-6">
+    <aside className="fixed left-0 top-0 z-50 h-screen w-16 bg-sidebar border-r border-sidebar-border flex flex-col items-center py-6" style={{ pointerEvents: 'auto' }}>
       {/* Logo */}
       <div className="mb-8">
-        <div className="w-10 h-10 rounded-lg bg-gradient-gold flex items-center justify-center">
+        <div className="w-10 h-10 rounded-lg bg-gradient-ai flex items-center justify-center">
           <Brain className="w-6 h-6 text-primary-foreground" />
         </div>
       </div>
@@ -32,8 +28,7 @@ const Sidebar = ({ activeSection, onSectionChange }: SidebarProps) => {
       {/* Navigation */}
       <nav className="flex-1 flex flex-col items-center gap-2">
         {navItems.map((item) => {
-          const pathname = usePathname();
-          const isActive = item.path ? pathname === item.path : activeSection === item.id;
+          const isActive = activeSection === item.id;
           
           const content = (
             <>
@@ -52,20 +47,19 @@ const Sidebar = ({ activeSection, onSectionChange }: SidebarProps) => {
               : "text-muted-foreground hover:text-foreground hover:bg-muted"
           );
           
-          if (item.path) {
-            return (
-              <Link key={item.id} href={item.path} className={className} title={item.label}>
-                {content}
-              </Link>
-            );
-          }
-          
           return (
             <button
               key={item.id}
-              onClick={() => onSectionChange(item.id)}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log('Button clicked:', item.id);
+                onSectionChange(item.id);
+              }}
               className={className}
               title={item.label}
+              type="button"
+              style={{ pointerEvents: 'auto', zIndex: 50, cursor: 'pointer' }}
             >
               {content}
             </button>

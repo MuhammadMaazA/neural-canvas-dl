@@ -1,12 +1,20 @@
-"use client";
-
 import { useState, useCallback, useEffect } from "react";
+import { ThemeProvider } from "@/components/providers/theme-provider";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import { Toaster } from "@/components/ui/toaster";
+import { Toaster as Sonner } from "@/components/ui/sonner";
+import { QueryClientProviderWrapper } from "@/components/providers/query-provider";
 import Sidebar from "@/components/layout/Sidebar";
 import TopBar from "@/components/layout/TopBar";
 import HeroSection from "@/components/sections/HeroSection";
 import AnalyzerSection from "@/components/analyzer/AnalyzerSection";
 import GenerativeLabSection from "@/components/sections/GenerativeLabSection";
 import Footer from "@/components/sections/Footer";
+import ModelArenaPage from "@/src/pages/ModelArenaPage";
+import CNNArenaPage from "@/src/pages/CNNArenaPage";
+import DiffusionLabPage from "@/src/pages/DiffusionLabPage";
+import ESRGANLabPage from "@/src/pages/ESRGANLabPage";
+import NSTLabPage from "@/src/pages/NSTLabPage";
 
 // Demo data - Starry Night
 const DEMO_IMAGE_URL = "https://upload.wikimedia.org/wikipedia/commons/thumb/e/ea/Van_Gogh_-_Starry_Night_-_Google_Art_Project.jpg/1280px-Van_Gogh_-_Starry_Night_-_Google_Art_Project.jpg";
@@ -35,9 +43,19 @@ const LLM_OUTPUTS = {
   hosted: "This is Vincent van Gogh's 'The Starry Night' (1889), painted during his stay at the Saint-Paul-de-Mausole asylum in Saint-Rémy-de-Provence. The work exemplifies Post-Impressionism's departure from pure optical observation. Van Gogh employs expressive, swirling brushwork to convey psychological intensity rather than atmospheric accuracy. The dominant ultramarine and cobalt blue palette, punctuated by cadmium yellow impasto stars, creates a visual rhythm that predates Expressionism. The composition balances the vertical cypress flame against horizontal village rooftops, while the turbulent sky suggests cosmic forces beyond human comprehension. This painting represents Van Gogh's synthesis of observed reality and inner emotional truth.",
 };
 
-export default function HomePage() {
+function App() {
   const [activeSection, setActiveSection] = useState("analyzer");
   const [devMode, setDevMode] = useState(false);
+  
+  // Debug: log section changes
+  useEffect(() => {
+    console.log('✅ Active section changed to:', activeSection);
+  }, [activeSection]);
+  
+  const handleSectionChange = (section: string) => {
+    console.log('🔄 Section change requested:', section);
+    setActiveSection(section);
+  };
   
   // Analyzer state
   const [loadedImage, setLoadedImage] = useState<string | null>(null);
@@ -67,8 +85,8 @@ export default function HomePage() {
     setGenrePredictions([]);
 
     try {
-      // Call Flask API for CNN analysis
-      const response = await fetch('http://localhost:5000/api/analyze-image', {
+      // Call Flask API for CNN analysis (using proxy)
+      const response = await fetch('/api/analyze-image', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ imageUrl }),
@@ -82,7 +100,7 @@ export default function HomePage() {
       
       // Start LLM generation - pass predictions to backend
       setIsGenerating(true);
-      const llmResponse = await fetch('http://localhost:5000/api/generate-llm', {
+      const llmResponse = await fetch('/api/generate-llm', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
@@ -121,7 +139,7 @@ export default function HomePage() {
     if (artistPredictions.length > 0) {
       setLlmOutput("");
       setIsGenerating(true);
-      fetch('http://localhost:5000/api/generate-llm', {
+      fetch('/api/generate-llm', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
@@ -143,39 +161,56 @@ export default function HomePage() {
           setLlmOutput(LLM_OUTPUTS[selectedModel]);
         });
     }
-  }, [selectedModel, artistPredictions.length]);
+  }, [selectedModel, artistPredictions.length, artistPredictions, stylePredictions, genrePredictions]);
 
   return (
-    <div className="min-h-screen bg-background">
-      <Sidebar activeSection={activeSection} onSectionChange={setActiveSection} />
-      <TopBar />
-      
-      <main className="pl-16 pt-14 min-h-screen overflow-x-hidden scrollbar-thin">
-        <HeroSection />
-        
-        <AnalyzerSection
-          loadedImage={loadedImage}
-          isScanning={isScanning}
-          onImageLoad={handleImageLoad}
-          onLoadDemo={handleLoadDemo}
-          artistPredictions={artistPredictions}
-          stylePredictions={stylePredictions}
-          genrePredictions={genrePredictions}
-          selectedModel={selectedModel}
-          onModelChange={setSelectedModel}
-          llmOutput={llmOutput}
-          isGenerating={isGenerating}
-          devMode={devMode}
-        />
-        
-        <GenerativeLabSection 
-          suggestedPrompt={suggestedPrompt}
-          devMode={devMode}
-        />
-        
-        <Footer />
-      </main>
-    </div>
+    <QueryClientProviderWrapper>
+      <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <div className="min-h-screen bg-background">
+            <Sidebar activeSection={activeSection} onSectionChange={handleSectionChange} />
+            <TopBar />
+            
+            <main className="pl-16 pt-14 min-h-screen overflow-x-hidden scrollbar-thin">
+              {activeSection === "analyzer" && (
+                <>
+                  <HeroSection />
+                  <AnalyzerSection
+                    loadedImage={loadedImage}
+                    isScanning={isScanning}
+                    onImageLoad={handleImageLoad}
+                    onLoadDemo={handleLoadDemo}
+                    artistPredictions={artistPredictions}
+                    stylePredictions={stylePredictions}
+                    genrePredictions={genrePredictions}
+                    selectedModel={selectedModel}
+                    onModelChange={setSelectedModel}
+                    llmOutput={llmOutput}
+                    isGenerating={isGenerating}
+                    devMode={devMode}
+                  />
+                  <GenerativeLabSection 
+                    suggestedPrompt={suggestedPrompt}
+                    devMode={devMode}
+                  />
+                  <Footer />
+                </>
+              )}
+              
+              {activeSection === "dialogue" && <ModelArenaPage />}
+              {activeSection === "cnn" && <CNNArenaPage />}
+              {activeSection === "diffusion" && <DiffusionLabPage />}
+              {activeSection === "esrgan" && <ESRGANLabPage />}
+              {activeSection === "nst" && <NSTLabPage />}
+            </main>
+          </div>
+        </TooltipProvider>
+      </ThemeProvider>
+    </QueryClientProviderWrapper>
   );
 }
+
+export default App;
 

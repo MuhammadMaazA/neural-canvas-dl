@@ -1,11 +1,7 @@
-"use client";
-
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { Send, Zap, Sparkles, Bug } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import Sidebar from "@/components/layout/Sidebar";
-import TopBar from "@/components/layout/TopBar";
 import ModelOutputCard from "@/components/arena/ModelOutputCard";
 
 const EXAMPLE_PROMPTS = [
@@ -15,8 +11,6 @@ const EXAMPLE_PROMPTS = [
 ];
 
 export default function ModelArenaPage() {
-  const [activeSection, setActiveSection] = useState("dialogue");
-  const [devMode, setDevMode] = useState(false);
   const [prompt, setPrompt] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
   
@@ -98,10 +92,7 @@ export default function ModelArenaPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <Sidebar activeSection={activeSection} onSectionChange={setActiveSection} />
-      <TopBar />
-      
-      <main className="pl-16 pt-14 h-[calc(100vh-0px)] overflow-hidden flex flex-col">
+      <main className="h-[calc(100vh-56px)] overflow-hidden flex flex-col">
         <div className="absolute inset-0 pl-16 pt-14 pointer-events-none overflow-hidden">
           <div className="absolute top-0 left-1/4 w-96 h-96 bg-secondary/10 rounded-full blur-[120px]" />
           <div className="absolute top-20 right-1/4 w-80 h-80 bg-accent/10 rounded-full blur-[100px]" />
@@ -136,7 +127,7 @@ export default function ModelArenaPage() {
               isLoading={scratchLoading}
               typingSpeed={50}
               variant="scratch"
-              devMode={devMode}
+              devMode={false}
               metrics={{
                 inferenceTime: "2.34s",
                 perplexity: "42.8",
@@ -154,7 +145,7 @@ export default function ModelArenaPage() {
               isLoading={finetunedLoading}
               typingSpeed={25}
               variant="finetuned"
-              devMode={devMode}
+              devMode={false}
               metrics={{
                 inferenceTime: "0.89s",
                 perplexity: "18.2",
@@ -172,7 +163,7 @@ export default function ModelArenaPage() {
               isLoading={hostedLoading}
               typingSpeed={10}
               variant="hosted"
-              devMode={devMode}
+              devMode={false}
               metrics={{
                 inferenceTime: "0.5s",
                 perplexity: "N/A",

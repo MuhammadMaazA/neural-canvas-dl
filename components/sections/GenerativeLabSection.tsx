@@ -37,7 +37,7 @@ const GenerativeLabSection = ({ suggestedPrompt, devMode }: GenerativeLabSection
           className="text-center mb-10"
         >
           <h2 className="font-serif text-3xl md:text-4xl font-bold mb-3">
-            <span className="text-gradient-gold">The Dream Studio</span>
+            <span className="text-gradient-ai">The Dream Studio</span>
           </h2>
           <p className="text-muted-foreground max-w-xl mx-auto">
             <LiteracyTooltip

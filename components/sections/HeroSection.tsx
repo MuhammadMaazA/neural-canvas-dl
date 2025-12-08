@@ -21,7 +21,7 @@ const HeroSection = () => {
           transition={{ duration: 0.8, ease: "easeOut" }}
           className="font-serif text-5xl md:text-7xl font-bold mb-6 leading-tight"
         >
-          <span className="text-gradient-gold">Neural</span>{" "}
+          <span className="text-gradient-ai">Neural</span>{" "}
           <span className="text-foreground">Canvas</span>
         </motion.h1>
 

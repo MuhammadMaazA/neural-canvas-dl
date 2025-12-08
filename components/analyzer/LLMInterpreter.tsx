@@ -77,8 +77,8 @@ const LLMInterpreter = ({
             )}
           >
             <div className="text-center">
-              <div className="font-semibold">DistilGPT-2</div>
-              <div className="text-[9px] opacity-70">Fine-tuned</div>
+              <div className="font-semibold">GPT-2 Medium</div>
+              <div className="text-[9px] opacity-70">355M • Fine-tuned</div>
             </div>
           </button>
           <button
@@ -86,7 +86,7 @@ const LLMInterpreter = ({
             className={cn(
               "flex-1 px-3 py-2 rounded-lg text-xs font-medium transition-all duration-300",
               selectedModel === "hosted"
-                ? "bg-gradient-gold text-secondary-foreground shadow-glow-gold"
+                ? "bg-gradient-ai text-secondary-foreground shadow-glow-ai"
                 : "text-muted-foreground hover:text-foreground hover:bg-canvas-highlight"
             )}
           >

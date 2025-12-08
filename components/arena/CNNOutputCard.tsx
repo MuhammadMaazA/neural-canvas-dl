@@ -11,7 +11,7 @@ interface CNNOutputCardProps {
   title: string;
   subtitle: string;
   params: string;
-  statusLabel: string;
+  statusLabel?: string;
   icon: LucideIcon;
   predictions: Prediction[] | null;
   isLoading: boolean;
@@ -83,12 +83,14 @@ const CNNOutputCard = ({
               <h3 className={cn("font-serif text-sm font-semibold", styles.accent)}>
                 {title}
               </h3>
-              <span className={cn(
-                "px-2 py-0.5 rounded-full text-[9px] font-mono border",
-                styles.statusBg, styles.statusText, styles.statusBorder
-              )}>
-                {statusLabel}
-              </span>
+              {statusLabel && (
+                <span className={cn(
+                  "px-2 py-0.5 rounded-full text-[9px] font-mono border",
+                  styles.statusBg, styles.statusText, styles.statusBorder
+                )}>
+                  {statusLabel}
+                </span>
+              )}
             </div>
             <p className="text-[10px] text-muted-foreground font-mono uppercase tracking-wider">
               {subtitle} • {params}

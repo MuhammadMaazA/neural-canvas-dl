@@ -1,16 +1,11 @@
-"use client";
 
 import { useState, useCallback } from "react";
 import { motion } from "framer-motion";
 import { Upload, Bug, Sparkles, Image as ImageIcon, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import Sidebar from "@/components/layout/Sidebar";
-import TopBar from "@/components/layout/TopBar";
 import CNNOutputCard from "@/components/arena/CNNOutputCard";
 
 export default function CNNArenaPage() {
-  const [activeSection, setActiveSection] = useState("cnn");
-  const [devMode, setDevMode] = useState(false);
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
@@ -65,7 +60,7 @@ export default function CNNArenaPage() {
     setFinetunedLoading(true);
 
     try {
-      const response = await fetch('http://localhost:5000/api/analyze-image', {
+      const response = await fetch('/api/analyze-image', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ imageUrl: uploadedImage }),
@@ -108,11 +103,9 @@ export default function CNNArenaPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <Sidebar activeSection={activeSection} onSectionChange={setActiveSection} />
-      <TopBar />
 
-      <main className="pl-16 pt-14 h-[calc(100vh-0px)] overflow-hidden flex flex-col">
-        <div className="absolute inset-0 pl-16 pt-14 pointer-events-none overflow-hidden">
+      <main className="pt-0 h-[calc(100vh-0px)] overflow-hidden flex flex-col">
+        <div className="absolute inset-0 pt-0 pointer-events-none overflow-hidden">
           <div className="absolute top-0 left-1/4 w-96 h-96 bg-primary/10 rounded-full blur-[120px]" />
           <div className="absolute top-20 right-1/4 w-80 h-80 bg-secondary/10 rounded-full blur-[100px]" />
         </div>
@@ -202,7 +195,7 @@ export default function CNNArenaPage() {
               predictions={scratchResults}
               isLoading={scratchLoading}
               variant="scratch"
-              devMode={devMode}
+              devMode={false}
               metrics={{
                 inferenceTime: "1.24s",
                 accuracy: "34.2%",
@@ -218,7 +211,7 @@ export default function CNNArenaPage() {
               predictions={finetunedResults}
               isLoading={finetunedLoading}
               variant="finetuned"
-              devMode={devMode}
+              devMode={false}
               metrics={{
                 inferenceTime: "0.18s",
                 accuracy: "87.4%",
