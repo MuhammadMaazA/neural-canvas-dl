@@ -69,11 +69,29 @@ const Sidebar = ({ activeSection, onSectionChange }: SidebarProps) => {
 
       {/* Bottom actions */}
       <div className="flex flex-col items-center gap-2">
-        <button className="w-10 h-10 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-all duration-300">
+        <button
+          onClick={() => {
+            alert('Neural Canvas v1.0\n\nDeep Learning Coursework (COMP0220)\n\nFeatures:\n• CNN Models: Custom (56M) + Fine-tuned\n• LLM Models:\n  - The Architect (56M from scratch)\n  - The Curator (355M GPT-2 fine-tuned)\n  - The Oracle (Groq Llama 3.2 1B)\n\nBuilt with Next.js, Flask, PyTorch');
+          }}
+          className="w-10 h-10 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-all duration-300 group relative"
+          title="About"
+        >
           <Info className="w-5 h-5" />
+          <span className="absolute left-14 px-2 py-1 bg-card border border-border rounded text-xs font-sans opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
+            About
+          </span>
         </button>
-        <button className="w-10 h-10 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-all duration-300">
+        <button
+          onClick={() => {
+            alert('Settings\n\n• Theme: Toggle in top bar\n• Models: All 3 LLM models active\n• Backend: http://localhost:5000\n• API Status: Healthy\n\nFor advanced settings, check the backend configuration.');
+          }}
+          className="w-10 h-10 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-all duration-300 group relative"
+          title="Settings"
+        >
           <Settings className="w-5 h-5" />
+          <span className="absolute left-14 px-2 py-1 bg-card border border-border rounded text-xs font-sans opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
+            Settings
+          </span>
         </button>
       </div>
     </aside>
