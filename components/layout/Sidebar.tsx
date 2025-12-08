@@ -71,7 +71,7 @@ const Sidebar = ({ activeSection, onSectionChange }: SidebarProps) => {
       <div className="flex flex-col items-center gap-2">
         <button
           onClick={() => {
-            alert('Neural Canvas v1.0\n\nDeep Learning Coursework (COMP0220)\n\nFeatures:\n• CNN Models: Custom (56M) + Fine-tuned\n• LLM Models:\n  - The Architect (56M from scratch)\n  - The Curator (355M GPT-2 fine-tuned)\n  - The Oracle (Groq Llama 3.2 1B)\n\nBuilt with Next.js, Flask, PyTorch');
+            alert('Neural Canvas v1.0\n\nDeep Learning Coursework (COMP0220)\n\nFeatures:\n• CNN Models: Custom (56M) + Fine-tuned\n• LLM Models:\n  - The Architect (56M from scratch)\n  - The Curator (355M GPT-2 fine-tuned)\n  - The Oracle (Groq Llama 3.2 1B)\n\nBuilt with React, Flask, PyTorch');
           }}
           className="w-10 h-10 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-all duration-300 group relative"
           title="About"
