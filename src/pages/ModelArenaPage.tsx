@@ -154,10 +154,10 @@ export default function ModelArenaPage() {
             />
 
             <ModelOutputCard
-              title="Model 2 (Fine-tuned)"
-              subtitle="GPT-2 Medium (355M params)"
-              params="Fine-tuned on art data"
-              statusLabel="Local Inference"
+              title="Model 3 (Cloud Intelligence)"
+              subtitle="Groq Llama 3.2 1B"
+              params="Architecture Curator • Groq API"
+              statusLabel="Cloud Inference"
               icon={Zap}
               output={hostedOutput}
               isLoading={hostedLoading}
@@ -165,9 +165,9 @@ export default function ModelArenaPage() {
               variant="hosted"
               devMode={false}
               metrics={{
-                inferenceTime: "0.5s",
+                inferenceTime: "0.3s",
                 perplexity: "N/A",
-                tokensPerSec: "50",
+                tokensPerSec: "120",
               }}
             />
           </div>
