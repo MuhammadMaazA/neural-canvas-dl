@@ -163,9 +163,9 @@ export default function ModelArenaPage() {
             />
 
             <ModelOutputCard
-              title="Model 3 (Cloud Intelligence)"
+              title="The Oracle"
               subtitle="Groq Llama 3.2 1B"
-              params="Architecture Curator • Groq API"
+              params="Cloud Intelligence • Groq API"
               statusLabel="Cloud Inference"
               icon={Zap}
               output={hostedOutput}
