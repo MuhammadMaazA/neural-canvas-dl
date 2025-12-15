@@ -127,13 +127,13 @@ const CNNOutputCard = ({
                 <div className="flex-1 h-2 bg-muted/30 rounded-full overflow-hidden">
                   <motion.div
                     initial={{ width: 0 }}
-                    animate={{ width: `${pred.confidence * 100}%` }}
+                    animate={{ width: `${pred.confidence}%` }}
                     transition={{ duration: 0.5, delay: index * 0.1 }}
                     className={cn("h-full rounded-full", styles.barBg)}
                   />
                 </div>
                 <span className={cn("w-12 text-right text-[11px] font-mono", styles.accent)}>
-                  {(pred.confidence * 100).toFixed(1)}%
+                  {pred.confidence.toFixed(1)}%
                 </span>
               </motion.div>
             ))}

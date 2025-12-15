@@ -70,33 +70,43 @@ export default function CNNArenaPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ imageUrl: uploadedImage }),
       });
+
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status}`);
+      }
+
       const data = await response.json();
-      
-      setFinetunedLoading(false);
-      setFinetunedResults(data.style.map((s: any) => ({ label: s.label, confidence: s.confidence })));
-      
-      setTimeout(() => {
-        setScratchLoading(false);
-        setScratchResults(data.style.map((s: any) => ({ label: s.label, confidence: s.confidence * 0.4 })));
-        setIsProcessing(false);
-      }, 1800);
-    } catch (error) {
-      // Fallback
-      setTimeout(() => {
+      console.log('API Response:', data);
+
+      // Use actual results from each model
+      if (data.finetuned && data.finetuned.style_top) {
         setFinetunedLoading(false);
-        setFinetunedResults([
-          { label: "Post-Impressionism", confidence: 0.87 },
-          { label: "Impressionism", confidence: 0.08 },
-        ]);
-      }, 1200);
-      setTimeout(() => {
-        setScratchLoading(false);
-        setScratchResults([
-          { label: "Impressionism", confidence: 0.34 },
-          { label: "Abstract", confidence: 0.28 },
-        ]);
-        setIsProcessing(false);
-      }, 3000);
+        setFinetunedResults(data.finetuned.style_top);
+      } else {
+        setFinetunedLoading(false);
+        setFinetunedResults([{ label: "Error: No finetuned results", confidence: 0 }]);
+      }
+
+      if (data.scratch && data.scratch.style_top) {
+        setTimeout(() => {
+          setScratchLoading(false);
+          setScratchResults(data.scratch.style_top);
+          setIsProcessing(false);
+        }, 1800);
+      } else {
+        setTimeout(() => {
+          setScratchLoading(false);
+          setScratchResults([{ label: "Error: No scratch results", confidence: 0 }]);
+          setIsProcessing(false);
+        }, 1800);
+      }
+    } catch (error) {
+      console.error('Classification error:', error);
+      setFinetunedLoading(false);
+      setFinetunedResults([{ label: "API Error - Check console", confidence: 0 }]);
+      setScratchLoading(false);
+      setScratchResults([{ label: "API Error - Check console", confidence: 0 }]);
+      setIsProcessing(false);
     }
   };
 
@@ -212,7 +222,7 @@ export default function CNNArenaPage() {
 
             <CNNOutputCard
               title="The Expert"
-              subtitle="Fine-Tuned ResNet50"
+              subtitle="Fine-Tuned ConvNeXt-Tiny"
               params="WikiArt Dataset"
               icon={Sparkles}
               predictions={finetunedResults}

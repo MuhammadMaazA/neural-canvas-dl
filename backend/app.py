@@ -6,8 +6,20 @@ Flask backend for CNN image classification and LLM explanations
 """
 
 import os
-os.environ['HF_HOME'] = '/cs/student/projects1/2023/muhamaaz/datasets'
-os.environ['TRANSFORMERS_CACHE'] = '/cs/student/projects1/2023/muhamaaz/datasets'
+from pathlib import Path
+
+# Get project root directory (works on both Windows and Linux)
+BACKEND_DIR = Path(__file__).resolve().parent
+FRONTEND_DIR = BACKEND_DIR.parent
+PROJECT_ROOT = FRONTEND_DIR.parent
+
+# Set HF cache - use project-relative or server path
+if os.path.exists('/cs/student/projects1/2023/muhamaaz/datasets'):
+    os.environ['HF_HOME'] = '/cs/student/projects1/2023/muhamaaz/datasets'
+    os.environ['TRANSFORMERS_CACHE'] = '/cs/student/projects1/2023/muhamaaz/datasets'
+else:
+    # Use default cache on local machine
+    pass
 
 from flask import Flask, request, jsonify
 from flask_cors import CORS
@@ -23,13 +35,13 @@ import numpy as np
 import requests
 from groq import Groq
 
-# Add paths
-sys.path.append('/cs/student/projects1/2023/muhamaaz/neural-canvas')
-sys.path.append('/cs/student/projects1/2023/muhamaaz/neural-canvas/llm')
-sys.path.append('/cs/student/projects1/2023/muhamaaz/neural-canvas/cnn_models')
+# Add paths (cross-platform)
+sys.path.insert(0, str(PROJECT_ROOT))
+sys.path.insert(0, str(PROJECT_ROOT / 'llm'))
+sys.path.insert(0, str(PROJECT_ROOT / 'cnn_models'))
 
 from transformers import AutoTokenizer, AutoModelForCausalLM
-from models.art_expert_model import create_art_expert_model
+from llm.models.art_expert_model import create_art_expert_model
 from cnn_models.model import build_model
 from cnn_models.config import Config
 
@@ -50,7 +62,7 @@ genre_names = None
 
 # Groq API configuration
 GROQ_API_KEY = os.getenv('GROQ_API_KEY', '')  # Set via environment variable
-GROQ_MODEL = "llama-3.2-1b-preview"
+GROQ_MODEL = "llama-3.1-8b-instant"  # Updated from decommissioned llama-3.2-1b-preview
 
 
 def load_models():
@@ -78,10 +90,12 @@ def load_models():
     config = Config()
     cnn_model_scratch = build_model(config, num_classes).to(device)
     
-    # Try multiple possible checkpoint locations for scratch model
+    # Try multiple possible checkpoint locations for scratch model (cross-platform)
     scratch_checkpoints = [
-        "/cs/student/projects1/2023/muhamaaz/neural-canvas/cnn_models/checkpoints/best_multitask_macro0.6421.pt",
-        "/cs/student/projects1/2023/muhamaaz/neural-canvas/cnn_models/checkpoints/best_models/best_custom_cnn.pt"
+        str(PROJECT_ROOT / 'cnn_models' / 'checkpoints' / 'best_models' / 'best_custom_cnn.pt'),
+        str(PROJECT_ROOT / 'cnn_models' / 'checkpoints' / 'best_multitask_macro0.6421.pt'),
+        "/cs/student/projects1/2023/muhamaaz/neural-canvas/cnn_models/checkpoints/best_models/best_custom_cnn.pt",
+        "/cs/student/projects1/2023/muhamaaz/neural-canvas/cnn_models/checkpoints/best_multitask_macro0.6421.pt"
     ]
     
     cnn_checkpoint_scratch = None
@@ -110,24 +124,28 @@ def load_models():
     cnn_model_finetuned = None
     try:
         # Import from model_timm.py (not train_timm.py)
-        sys.path.insert(0, '/cs/student/projects1/2023/muhamaaz/neural-canvas/cnn_models')
         from model_timm import TimmMultiHead
         
         # Create TIMM model with ConvNeXt-Tiny backbone
         cnn_model_finetuned = TimmMultiHead(num_classes=num_classes, model_name="convnext_tiny").to(device)
         
-        # Find TIMM checkpoint - check multiple possible locations
+        # Find TIMM checkpoint - check multiple possible locations (cross-platform)
         import glob
         finetuned_checkpoints = []
         
-        # Check for TIMM checkpoints in various locations
+        # Priority: best_timm.pt in best_models folder
+        cnn_models_path = PROJECT_ROOT / 'cnn_models'
+        
+        # Check cross-platform paths first
+        finetuned_checkpoints.extend(glob.glob(str(cnn_models_path / 'checkpoints' / 'best_models' / 'best_timm.pt')))
+        finetuned_checkpoints.extend(glob.glob(str(cnn_models_path / 'checkpoints' / 'best_models' / '*timm*.pt')))
+        finetuned_checkpoints.extend(glob.glob(str(cnn_models_path / 'checkpoints' / '*timm*.pt')))
+        finetuned_checkpoints.extend(glob.glob(str(cnn_models_path / 'checkpoints' / '*convnext*.pt')))
+        
+        # Fallback to server paths
+        finetuned_checkpoints.extend(glob.glob("/cs/student/projects1/2023/muhamaaz/neural-canvas/cnn_models/checkpoints/best_models/best_timm.pt"))
         finetuned_checkpoints.extend(glob.glob("/cs/student/projects1/2023/muhamaaz/neural-canvas/cnn_models/checkpoints/*timm*.pt"))
         finetuned_checkpoints.extend(glob.glob("/cs/student/projects1/2023/muhamaaz/neural-canvas/cnn_models/checkpoints/*convnext*.pt"))
-        finetuned_checkpoints.extend(glob.glob("/cs/student/projects1/2023/muhamaaz/neural-canvas/cnn_models/checkpoints/best_models/*timm*.pt"))
-        finetuned_checkpoints.extend(glob.glob("/cs/student/projects1/2023/muhamaaz/neural-canvas/cnn_models/checkpoints/best_models/best_timm.pt"))
-        
-        # Also check for checkpoints with macro accuracy in name
-        finetuned_checkpoints.extend(glob.glob("/cs/student/projects1/2023/muhamaaz/neural-canvas/cnn_models/checkpoints/*macro*.pt"))
         
         if finetuned_checkpoints:
             # Prefer TIMM-specific checkpoints, then checkpoints with macro in name
@@ -180,21 +198,30 @@ def load_models():
     
     # Load LLM Model 1 (From Scratch)
     print("Loading LLM Model 1 (From Scratch)...")
-    checkpoint = torch.load(
-        "/cs/student/projects1/2023/muhamaaz/checkpoints/cnn_explainer_from_scratch/best_model.pt",
-        map_location=device, weights_only=False
-    )
-    llm_model1 = create_art_expert_model(tokenizer.vocab_size, "base").to(device)
-    llm_model1.load_state_dict(checkpoint['model_state_dict'])
-    llm_model1.eval()
-    print("✓ Model 1 loaded")
+    llm1_paths = [
+        str(PROJECT_ROOT / 'checkpoints' / 'cnn_explainer_from_scratch' / 'best_model.pt'),
+        "/cs/student/projects1/2023/muhamaaz/checkpoints/cnn_explainer_from_scratch/best_model.pt"
+    ]
+    llm1_path = next((p for p in llm1_paths if os.path.exists(p)), None)
+    if llm1_path:
+        checkpoint = torch.load(llm1_path, map_location=device, weights_only=False)
+        llm_model1 = create_art_expert_model(tokenizer.vocab_size, "base").to(device)
+        llm_model1.load_state_dict(checkpoint['model_state_dict'])
+        llm_model1.eval()
+        print(f"✓ Model 1 loaded from {llm1_path}")
+    else:
+        print("⚠ LLM Model 1 not found")
+        llm_model1 = None
     
     # Load LLM Model 2 (Fine-tuned GPT-2 Medium - 355M params)
     print("Loading LLM Model 2 (Fine-tuned GPT-2 Medium - 355M params)...")
-    model2_path = "/cs/student/projects1/2023/muhamaaz/checkpoints/model2_cnn_explainer_gpt2medium/best_model_hf"
-    if not os.path.exists(model2_path):
-        # Fallback to older fine-tuned model
-        model2_path = "/cs/student/projects1/2023/muhamaaz/checkpoints/cnn_explainer_finetuned/best_model_hf"
+    model2_paths = [
+        str(PROJECT_ROOT / 'checkpoints' / 'model2_cnn_explainer_gpt2medium' / 'best_model_hf'),
+        str(PROJECT_ROOT / 'checkpoints' / 'cnn_explainer_finetuned' / 'best_model_hf'),
+        "/cs/student/projects1/2023/muhamaaz/checkpoints/model2_cnn_explainer_gpt2medium/best_model_hf",
+        "/cs/student/projects1/2023/muhamaaz/checkpoints/cnn_explainer_finetuned/best_model_hf"
+    ]
+    model2_path = next((p for p in model2_paths if os.path.exists(p)), None)
     
     if os.path.exists(model2_path):
         llm_model2 = AutoModelForCausalLM.from_pretrained(model2_path).to(device)
@@ -226,12 +253,13 @@ def preprocess_image(image: Image.Image) -> torch.Tensor:
     return transform(image.convert('RGB')).unsqueeze(0)
 
 
-def predict_cnn(image: Image.Image, model_type: str = "scratch") -> dict:
+def predict_cnn(image: Image.Image, model_type: str = "scratch", top_k: int = 3) -> dict:
     """Run CNN prediction on image
     
     Args:
         image: PIL Image
         model_type: "scratch" or "finetuned"
+        top_k: Number of top predictions to return
     """
     global cnn_model_scratch, cnn_model_finetuned, device, artist_names, style_names, genre_names
     
@@ -245,20 +273,35 @@ def predict_cnn(image: Image.Image, model_type: str = "scratch") -> dict:
         logits = model(img_tensor)
     
     predictions = {}
+    top_predictions = {}
+    
     for task in ['artist', 'style', 'genre']:
         probs = F.softmax(logits[task], dim=1)
-        conf, idx = torch.max(probs, dim=1)
+        
+        # Get top-k predictions
+        top_confs, top_idxs = torch.topk(probs, min(top_k, probs.size(1)), dim=1)
         
         if task == 'artist':
-            name = artist_names[idx.item()]
+            names = artist_names
         elif task == 'style':
-            name = style_names[idx.item()]
+            names = style_names
         else:
-            name = genre_names[idx.item()]
+            names = genre_names
         
+        # Build top-k list
+        top_list = []
+        for i in range(top_confs.size(1)):
+            name = names[top_idxs[0, i].item()]
+            name = name.replace('-', ' ').replace('_', ' ').title()
+            conf = top_confs[0, i].item()
+            top_list.append({'label': name, 'confidence': int(conf * 100)})
+        
+        top_predictions[task] = top_list
+        
+        # Keep top-1 for backward compatibility
         predictions[task] = {
-            'name': name.replace('-', ' ').replace('_', ' ').title(),
-            'confidence': conf.item()
+            'name': top_list[0]['label'],
+            'confidence': top_list[0]['confidence'] / 100.0
         }
     
     return {
@@ -267,7 +310,11 @@ def predict_cnn(image: Image.Image, model_type: str = "scratch") -> dict:
         'style': predictions['style']['name'],
         'style_confidence': predictions['style']['confidence'],
         'genre': predictions['genre']['name'],
-        'genre_confidence': predictions['genre']['confidence']
+        'genre_confidence': predictions['genre']['confidence'],
+        # New: top-k predictions for frontend
+        'artist_top': top_predictions['artist'],
+        'style_top': top_predictions['style'],
+        'genre_top': top_predictions['genre']
     }
 
 
@@ -466,11 +513,20 @@ def root():
     return jsonify({
         "message": "Neural Canvas API",
         "version": "1.0.0",
+        "description": "Deep Learning pipeline for art analysis: CNN (WikiArt) → LLM explanations (Custom 35-56M, GPT-2 Medium 355M, Groq Llama 3.2 1B)",
         "endpoints": {
-            "/api/classify": "POST - Classify image with CNN",
-            "/api/explain": "POST - Get LLM explanation",
-            "/api/full": "POST - Full pipeline (CNN + LLM)",
-            "/api/health": "GET - Health check"
+            "/api/health": "GET - Health check & model status",
+            "/api/analyze-image": "POST - Analyze artwork with CNN (JSON: imageUrl or multipart: file)",
+            "/api/generate-llm": "POST - Generate LLM explanation (JSON: model, predictions)",
+            "/api/generate-text": "POST - Generate text from LLM (JSON: prompt, model)",
+            "/api/classify": "POST - Classify image with CNN (multipart: file)",
+            "/api/classify-both": "POST - Classify with both CNNs (multipart: file)",
+            "/api/explain": "POST - Get LLM explanation for predictions (JSON: artist, style, genre)",
+            "/api/full": "POST - Full pipeline: CNN + LLM (multipart: file)"
+        },
+        "models": {
+            "cnn": ["custom (scratch)", "fine-tuned ResNet50"],
+            "llm": ["custom (35-56M)", "GPT-2 Medium (355M)", "Groq Llama 3.2 (1B)"]
         }
     })
 
@@ -688,10 +744,25 @@ def analyze_image():
             data = request.json
             image_url = data.get('imageUrl')
             if image_url:
-                # Download image from URL
-                response = requests.get(image_url, timeout=10)
-                response.raise_for_status()
-                image = Image.open(io.BytesIO(response.content)).convert('RGB')
+                # Check if it's a base64 data URL
+                if image_url.startswith('data:image'):
+                    # Extract base64 data from data URL
+                    import base64
+                    print(f"[DEBUG] Processing base64 image (length: {len(image_url)})")
+                    base64_data = image_url.split(',')[1]
+                    image_data = base64.b64decode(base64_data)
+                    image = Image.open(io.BytesIO(image_data)).convert('RGB')
+                    print(f"[DEBUG] Image loaded: size={image.size}, mode={image.mode}")
+                else:
+                    # Download image from HTTP URL with proper headers
+                    print(f"[DEBUG] Downloading image from URL: {image_url[:100]}...")
+                    headers = {
+                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+                    }
+                    response = requests.get(image_url, headers=headers, timeout=10)
+                    response.raise_for_status()
+                    image = Image.open(io.BytesIO(response.content)).convert('RGB')
+                    print(f"[DEBUG] Image loaded: size={image.size}, mode={image.mode}")
         # Check if file upload
         elif 'file' in request.files:
             file = request.files['file']
@@ -703,36 +774,28 @@ def analyze_image():
             return jsonify({"error": "Could not load image"}), 400
         
         # Get predictions from both models
-        scratch_pred = predict_cnn(image, "scratch")
-        finetuned_pred = predict_cnn(image, "finetuned") if cnn_model_finetuned else None
+        print("[DEBUG] Running scratch model prediction...")
+        scratch_pred = predict_cnn(image, "scratch", top_k=3)
+        print(f"[DEBUG] Scratch predictions: {scratch_pred['style_top']}")
+
+        if cnn_model_finetuned:
+            print("[DEBUG] Running finetuned model prediction...")
+            finetuned_pred = predict_cnn(image, "finetuned", top_k=3)
+            print(f"[DEBUG] Finetuned predictions: {finetuned_pred['style_top']}")
+        else:
+            finetuned_pred = None
         
-        # Format response to match frontend expectations
-        # Frontend expects: { artist: [...], style: [...], genre: [...] }
-        # Where each is an array of { label: string, confidence: number }
-        
-        def format_predictions(pred, model_name):
-            """Format predictions for frontend"""
-            # For now, return top prediction with confidence
-            # You can extend this to return top-k predictions
-            return [
-                {
-                    "label": pred['artist'],
-                    "confidence": int(pred['artist_confidence'] * 100)
-                }
-            ]
-        
-        # Use scratch model predictions (or finetuned if available)
+        # Use finetuned model if available (better accuracy), otherwise scratch
         pred = finetuned_pred if finetuned_pred else scratch_pred
         
-        # Get top predictions for each category
-        # For simplicity, return single top prediction per category
-        # In a full implementation, you'd want to return top-k
+        # Return top-3 predictions for each category
         return jsonify({
-            "artist": [{"label": pred['artist'], "confidence": int(pred['artist_confidence'] * 100)}],
-            "style": [{"label": pred['style'], "confidence": int(pred['style_confidence'] * 100)}],
-            "genre": [{"label": pred['genre'], "confidence": int(pred['genre_confidence'] * 100)}],
+            "artist": pred.get('artist_top', [{"label": pred['artist'], "confidence": int(pred['artist_confidence'] * 100)}]),
+            "style": pred.get('style_top', [{"label": pred['style'], "confidence": int(pred['style_confidence'] * 100)}]),
+            "genre": pred.get('genre_top', [{"label": pred['genre'], "confidence": int(pred['genre_confidence'] * 100)}]),
             "scratch": scratch_pred,
-            "finetuned": finetuned_pred
+            "finetuned": finetuned_pred,
+            "model_used": "finetuned" if finetuned_pred else "scratch"
         })
         
     except Exception as e:
@@ -758,7 +821,7 @@ def generate_llm():
     model_map = {
         'scratch': 1,
         'distilgpt2': 2,  # Model2 is GPT-2 Medium (355M)
-        'hosted': 2  # Hosted is also GPT-2 Medium
+        'hosted': 3  # Model3 is Groq Llama 3.2 1B
     }
     
     model_num = model_map.get(model, 1)
@@ -817,11 +880,36 @@ def generate_text_legacy():
     if model == 'finetuned' and llm_model2 is not None:
         model_num = 2
     elif model == 'hosted':
-        model_num = 2 if llm_model2 is not None else 1
-
-    tokens = tokenizer(user_prompt, return_tensors='pt')['input_ids'].to(device)
+        model_num = 3  # Model 3 is Groq Llama 3.2 1B
 
     try:
+        # Handle Model 3 (Groq API)
+        if model_num == 3:
+            if llm_model3_client is None:
+                return jsonify({"error": "Model 3 (Groq) not available"}), 503
+
+            try:
+                completion = llm_model3_client.chat.completions.create(
+                    model=GROQ_MODEL,
+                    messages=[{"role": "user", "content": user_prompt}],
+                    max_tokens=120,
+                    temperature=0.8,
+                    top_p=0.95
+                )
+                text = completion.choices[0].message.content.strip()
+                print(f"\n[MODEL ARENA - hosted/groq] OUTPUT: {text[:200]}...\n")
+
+                # Clean up conversational markers
+                text = re.sub(r'^(Assistant|User|Human|Expert|Response):\s*', '', text, flags=re.IGNORECASE)
+
+                return jsonify({"text": text})
+            except Exception as e:
+                print(f"[MODEL 3 - GROQ] Error: {e}")
+                return jsonify({"error": f"Groq API error: {str(e)}"}), 500
+
+        # Handle Model 1 and 2 (PyTorch)
+        tokens = tokenizer(user_prompt, return_tensors='pt')['input_ids'].to(device)
+
         with torch.no_grad():
             if model_num == 1:
                 # Model 1 - custom architecture
@@ -938,4 +1026,4 @@ def generate_text_legacy():
 
 
 if __name__ == '__main__':
-    app.run(debug=True, port=5000, host='0.0.0.0')
+    app.run(debug=True, port=5000, host='0.0.0.0', use_reloader=False)

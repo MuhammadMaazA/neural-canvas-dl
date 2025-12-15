@@ -48,7 +48,7 @@ const CNNDecoder = ({
             <div className="text-muted-foreground">Inference Time:</div>
             <div className="text-secondary">45ms</div>
             <div className="text-muted-foreground">Backbone:</div>
-            <div className="text-secondary">ResNet-50</div>
+            <div className="text-secondary">ConvNeXt-Tiny</div>
             <div className="text-muted-foreground">Input Size:</div>
             <div className="text-secondary">224×224×3</div>
           </div>

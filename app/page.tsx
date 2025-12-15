@@ -8,32 +8,8 @@ import AnalyzerSection from "@/components/analyzer/AnalyzerSection";
 import GenerativeLabSection from "@/components/sections/GenerativeLabSection";
 import Footer from "@/components/sections/Footer";
 
-// Demo data - Starry Night
-const DEMO_IMAGE_URL = "https://upload.wikimedia.org/wikipedia/commons/thumb/e/ea/Van_Gogh_-_Starry_Night_-_Google_Art_Project.jpg/1280px-Van_Gogh_-_Starry_Night_-_Google_Art_Project.jpg";
-
-const DEMO_CNN_RESULTS = {
-  artist: [
-    { label: "Vincent van Gogh", confidence: 87 },
-    { label: "Paul Gauguin", confidence: 6 },
-    { label: "Claude Monet", confidence: 4 },
-  ],
-  style: [
-    { label: "Post-Impressionism", confidence: 92 },
-    { label: "Expressionism", confidence: 5 },
-    { label: "Impressionism", confidence: 2 },
-  ],
-  genre: [
-    { label: "Landscape", confidence: 78 },
-    { label: "Cityscape", confidence: 15 },
-    { label: "Abstract", confidence: 4 },
-  ],
-};
-
-const LLM_OUTPUTS = {
-  scratch: "Input classified. Artist: Van Gogh. Style: Post-Impressionism. The image contains blue swirls and yellow lights. Probability high. This matches training data index 402. Night scene detected. Brush texture: impasto. Color palette: ultramarine, chrome yellow, prussian blue.",
-  distilgpt2: "This masterpiece is undeniably a Post-Impressionist work. The neural network identified the iconic heavy brushstrokes and the turbulent, swirling sky characteristic of Van Gogh's late period. The high contrast between the deep blues and the piercing yellows suggests an emotional, rather than realistic, depiction of the landscape. The cypress tree rises like a dark flame into the night sky, while the village below rests peacefully under the cosmic dance above. This is quintessential Van Gogh — raw emotion rendered in paint.",
-  hosted: "This is Vincent van Gogh's 'The Starry Night' (1889), painted during his stay at the Saint-Paul-de-Mausole asylum in Saint-Rémy-de-Provence. The work exemplifies Post-Impressionism's departure from pure optical observation. Van Gogh employs expressive, swirling brushwork to convey psychological intensity rather than atmospheric accuracy. The dominant ultramarine and cobalt blue palette, punctuated by cadmium yellow impasto stars, creates a visual rhythm that predates Expressionism. The composition balances the vertical cypress flame against horizontal village rooftops, while the turbulent sky suggests cosmic forces beyond human comprehension. This painting represents Van Gogh's synthesis of observed reality and inner emotional truth.",
-};
+// Demo image URL - Starry Night
+const DEMO_IMAGE_URL = "https://upload.wikimedia.org/wikipedia/commons/e/ea/Van_Gogh_-_Starry_Night_-_Google_Art_Project.jpg";
 
 export default function HomePage() {
   const [activeSection, setActiveSection] = useState("analyzer");
@@ -73,19 +49,25 @@ export default function HomePage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ imageUrl }),
       });
+
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status}`);
+      }
+
       const data = await response.json();
-      
+      console.log('CNN API Response:', data);
+
       setIsScanning(false);
-      setArtistPredictions(data.artist);
-      setStylePredictions(data.style);
-      setGenrePredictions(data.genre);
-      
+      setArtistPredictions(data.artist || []);
+      setStylePredictions(data.style || []);
+      setGenrePredictions(data.genre || []);
+
       // Start LLM generation - pass predictions to backend
       setIsGenerating(true);
       const llmResponse = await fetch('http://localhost:5000/api/generate-llm', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           model: selectedModel,
           predictions: {
             artist: data.artist,
@@ -94,21 +76,23 @@ export default function HomePage() {
           }
         }),
       });
+
+      if (!llmResponse.ok) {
+        throw new Error(`LLM API error: ${llmResponse.status}`);
+      }
+
       const llmData = await llmResponse.json();
+      console.log('LLM API Response:', llmData);
       setIsGenerating(false);
-      setLlmOutput(llmData.output);
+      setLlmOutput(llmData.output || "No output from LLM");
     } catch (error) {
-      // Fallback to mock data if API fails
+      console.error('Analyzer error:', error);
       setIsScanning(false);
-      setArtistPredictions(DEMO_CNN_RESULTS.artist);
-      setStylePredictions(DEMO_CNN_RESULTS.style);
-      setGenrePredictions(DEMO_CNN_RESULTS.genre);
-      
-      setIsGenerating(true);
-      setTimeout(() => {
-        setIsGenerating(false);
-        setLlmOutput(LLM_OUTPUTS[selectedModel]);
-      }, 500);
+      setArtistPredictions([{ label: "API Error - Check console", confidence: 0 }]);
+      setStylePredictions([{ label: "API Error - Check console", confidence: 0 }]);
+      setGenrePredictions([{ label: "API Error - Check console", confidence: 0 }]);
+      setIsGenerating(false);
+      setLlmOutput("Error: Could not connect to backend API. Check console for details.");
     }
   }, [selectedModel]);
 
@@ -118,13 +102,13 @@ export default function HomePage() {
 
   // Update LLM output when model changes (if already analyzed)
   useEffect(() => {
-    if (artistPredictions.length > 0) {
+    if (artistPredictions.length > 0 && artistPredictions[0].label !== "API Error - Check console") {
       setLlmOutput("");
       setIsGenerating(true);
       fetch('http://localhost:5000/api/generate-llm', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           model: selectedModel,
           predictions: {
             artist: artistPredictions,
@@ -133,14 +117,21 @@ export default function HomePage() {
           }
         }),
       })
-        .then(res => res.json())
-        .then(data => {
-          setIsGenerating(false);
-          setLlmOutput(data.output);
+        .then(res => {
+          if (!res.ok) {
+            throw new Error(`LLM API error: ${res.status}`);
+          }
+          return res.json();
         })
-        .catch(() => {
+        .then(data => {
+          console.log('LLM model switch response:', data);
           setIsGenerating(false);
-          setLlmOutput(LLM_OUTPUTS[selectedModel]);
+          setLlmOutput(data.output || "No output from LLM");
+        })
+        .catch((error) => {
+          console.error('LLM generation error:', error);
+          setIsGenerating(false);
+          setLlmOutput("Error: Could not generate LLM output. Check console for details.");
         });
     }
   }, [selectedModel, artistPredictions.length]);

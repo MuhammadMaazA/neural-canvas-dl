@@ -52,13 +52,14 @@ const HeroSection = () => {
             
             <p className="text-sm text-muted-foreground leading-relaxed">
               This platform demonstrates a{" "}
-              <span className="text-secondary font-medium">Deep Learning pipeline</span>. 
+              <span className="text-secondary font-medium">complete Deep Learning pipeline</span>. 
               We use a <span className="text-accent font-mono text-xs">CNN</span> trained on WikiArt to{" "}
-              <em>'see'</em> the painting, and two distinct{" "}
+              <em>'see'</em> artworks, then three distinct{" "}
               <span className="text-accent font-mono text-xs">LLMs</span> to{" "}
-              <em>'explain'</em> it. Finally, a{" "}
-              <span className="text-accent font-mono text-xs">Diffusion</span> model reimagines it.{" "}
-              <span className="text-primary">Explore the boundaries of AI Literacy.</span>
+              <em>'explain'</em> them — from a custom transformer built from scratch (35M), 
+              to a fine-tuned GPT-2 Medium (355M), to a hosted Llama 3.2 (1B) API. 
+              Finally, <span className="text-accent font-mono text-xs">Diffusion</span> and <span className="text-accent font-mono text-xs">Super-Resolution</span> models reimagine and enhance the art.{" "}
+              <span className="text-primary">Explore the boundaries of AI and Art.</span>
             </p>
           </motion.div>
         )}

@@ -13,9 +13,9 @@ interface LLMInterpreterProps {
 }
 
 const MODEL_SPECS = {
-  scratch: { params: "56M", label: "Raw & Experimental" },
-  distilgpt2: { params: "82M", label: "Pre-trained & Polished" },
-  hosted: { params: "175B", label: "Cloud API Inference" },
+  scratch: { params: "35-56M", label: "Custom Transformer" },
+  distilgpt2: { params: "355M", label: "Fine-tuned GPT-2 Medium" },
+  hosted: { params: "1B", label: "Groq Llama 3.2 API" },
 };
 
 const LLMInterpreter = ({ 
@@ -63,8 +63,8 @@ const LLMInterpreter = ({
             )}
           >
             <div className="text-center">
-              <div className="font-semibold">Scratch</div>
-              <div className="text-[9px] opacity-70">Custom</div>
+              <div className="font-semibold">Custom Model</div>
+              <div className="text-[9px] opacity-70">35-56M • From Scratch</div>
             </div>
           </button>
           <button
@@ -91,8 +91,8 @@ const LLMInterpreter = ({
             )}
           >
             <div className="text-center">
-              <div className="font-semibold">GPT-4</div>
-              <div className="text-[9px] opacity-70">API</div>
+              <div className="font-semibold">Llama 3.2</div>
+              <div className="text-[9px] opacity-70">1B • Groq</div>
             </div>
           </button>
         </div>
@@ -118,7 +118,7 @@ const LLMInterpreter = ({
             {selectedModel === "hosted" && (
               <>
                 <div className="text-muted-foreground">Endpoint:</div>
-                <div className="text-primary truncate">api.openai.com</div>
+                <div className="text-primary truncate">api.groq.com</div>
               </>
             )}
           </div>

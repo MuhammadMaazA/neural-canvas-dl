@@ -128,8 +128,8 @@ export default function ModelArenaPage() {
           <div className="flex-1 grid grid-cols-1 lg:grid-cols-3 gap-4 min-h-0">
             <ModelOutputCard
               title="The Architect"
-              subtitle="Custom Transformer"
-              params="56M Params"
+              subtitle="Custom Transformer (From Scratch)"
+              params="35-56M Params • Built from Zero"
               statusLabel="Training Loss: 2.4"
               icon={Bug}
               output={scratchOutput}
@@ -165,7 +165,7 @@ export default function ModelArenaPage() {
             <ModelOutputCard
               title="The Oracle"
               subtitle="Groq Llama 3.2 1B"
-              params="Cloud Intelligence • Groq API"
+              params="1B Params • Groq Cloud API"
               statusLabel="Cloud Inference"
               icon={Zap}
               output={hostedOutput}
@@ -176,7 +176,7 @@ export default function ModelArenaPage() {
               metrics={{
                 inferenceTime: "0.3s",
                 perplexity: "N/A",
-                tokensPerSec="120",
+                tokensPerSec: "120",
               }}
             />
           </div>
