@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
 """
-Neural Canvas Backend API (Flask)
-==================================
-Flask backend for CNN image classification and LLM explanations
+Flask backend for CNN image classification and LLM explanations.
 """
 
 import os
